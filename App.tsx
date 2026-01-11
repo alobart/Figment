@@ -361,7 +361,7 @@ const App: React.FC = () => {
                                     <ol className="list-decimal pl-4 mt-1 space-y-1">
                                         <li>Go to your Vercel Project Settings</li>
                                         <li>Navigate to <strong>Environment Variables</strong></li>
-                                        <li>Add Key: <code className="bg-black/30 px-1 py-0.5 rounded text-zinc-300">API_KEY</code></li>
+                                        <li>Add Key: <code className="bg-black/30 px-1 py-0.5 rounded text-zinc-300">VITE_API_KEY</code></li>
                                         <li>Add Value: Your Gemini API Key</li>
                                         <li>Redeploy your project</li>
                                     </ol>
