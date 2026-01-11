@@ -141,14 +141,7 @@ interface GenerationResult {
 
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
   // Use process.env.API_KEY directly as per SDK guidelines
-  // Note: SDK requires we use process.env.API_KEY. The polyfill in index.tsx handles mapping VITE_API_KEY to this.
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("API Key missing. process.env.API_KEY must be set. If using Vite, ensure your env var is named VITE_API_KEY.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const tasks: { point: Point }[] = [];
 

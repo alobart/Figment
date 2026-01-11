@@ -1,38 +1,35 @@
-import React, { ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Polyfill process for browser environment and bridge Vite env vars
-if (typeof process === 'undefined') {
-  (window as any).process = { env: {} };
-} else if (!process.env) {
-  (process as any).env = {};
+// 1. Ensure global process.env exists
+if (typeof window !== 'undefined') {
+  if (!(window as any).process) {
+    (window as any).process = { env: {} };
+  }
+  if (!(window as any).process.env) {
+    (window as any).process.env = {};
+  }
 }
 
-// Bridge Vite's import.meta.env to process.env
-// This handles Vercel deployments where variables must be prefixed with VITE_
+// 2. bridge Vite env vars to process.env.API_KEY
+// CRITICAL: We must access import.meta.env.VITE_API_KEY directly 
+// so the bundler performs static string replacement.
 try {
   // @ts-ignore
-  if (import.meta && import.meta.env) {
-    // @ts-ignore
-    const viteEnv = import.meta.env;
-    
-    // 1. Try explicit lookup (safest for static replacement in some builds)
-    const explicitKey = viteEnv.VITE_API_KEY || viteEnv.NEXT_PUBLIC_API_KEY || viteEnv.REACT_APP_API_KEY || viteEnv.API_KEY;
-    
-    if (explicitKey) {
-        (window as any).process.env.API_KEY = explicitKey;
-    } else {
-        // 2. Fallback to iteration
-        Object.keys(viteEnv).forEach(key => {
-            if (key === 'VITE_API_KEY' || key === 'API_KEY' || key === 'NEXT_PUBLIC_API_KEY') {
-                (window as any).process.env.API_KEY = viteEnv[key];
-            }
-        });
-    }
+  const viteKey = import.meta.env.VITE_API_KEY;
+  // @ts-ignore
+  const standardKey = import.meta.env.API_KEY;
+  // @ts-ignore
+  const nextKey = import.meta.env.NEXT_PUBLIC_API_KEY;
+
+  const keyToUse = viteKey || standardKey || nextKey;
+
+  if (keyToUse) {
+    (window as any).process.env.API_KEY = keyToUse;
   }
 } catch (e) {
-  // Ignore if import.meta is not supported
+  // Ignore reference errors if import.meta is not available
 }
 
 interface ErrorBoundaryProps {
@@ -45,7 +42,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary to catch crashes
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

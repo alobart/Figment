@@ -357,14 +357,8 @@ const App: React.FC = () => {
                             {/* Vercel Specific Help Message */}
                             {error.includes("API Key") && !window.aistudio && (
                                 <div className="text-xs text-zinc-400 pl-6 border-l-2 border-zinc-700 mt-1">
-                                    To fix this on Vercel:
-                                    <ol className="list-decimal pl-4 mt-1 space-y-1">
-                                        <li>Go to your Vercel Project Settings</li>
-                                        <li>Navigate to <strong>Environment Variables</strong></li>
-                                        <li>Add Key: <code className="bg-black/30 px-1 py-0.5 rounded text-zinc-300">VITE_API_KEY</code></li>
-                                        <li>Add Value: Your Gemini API Key</li>
-                                        <li>Redeploy your project</li>
-                                    </ol>
+                                    <span className="font-semibold text-red-400">Environment Variable Missing:</span><br/>
+                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">VITE_API_KEY</code> is set in your Vercel Project Settings and you have redeployed.
                                 </div>
                             )}
                         </div>
