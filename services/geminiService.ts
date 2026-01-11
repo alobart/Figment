@@ -1,6 +1,26 @@
 import { GoogleGenAI } from "@google/genai";
 import { GenerationParams, StyleOption, Point, ColorPalette, Lighting, DepthOfField, ModelOption } from "../types";
 
+// --- SAFE API KEY RETRIEVAL ---
+// This prevents "ReferenceError: process is not defined" crashes on browsers
+const getApiKey = (): string | undefined => {
+  // 1. Try Vite (Most common for modern React apps)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_API_KEY;
+  }
+  
+  // 2. Try Standard Node/Process (Next.js, CRA, etc)
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.NEXT_PUBLIC_API_KEY || 
+           process.env.REACT_APP_API_KEY || 
+           process.env.API_KEY;
+  }
+
+  return undefined;
+};
+
 // Helper to clean base64 string for API usage
 const extractBase64Data = (dataUrl: string): string => {
   return dataUrl.split(',')[1] || "";
@@ -139,12 +159,15 @@ interface GenerationResult {
 }
 
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
-  // SECURITY CHECK: Ensure API Key is present
-  if (!process.env.API_KEY) {
-    throw new Error("Missing API Key. Please configure the API_KEY environment variable.");
+  const apiKey = getApiKey();
+  
+  // SECURITY CHECK: Ensure API Key is present in one of the standard env locations
+  if (!apiKey) {
+    console.error("API Key not found. Checked: VITE_API_KEY, NEXT_PUBLIC_API_KEY, REACT_APP_API_KEY, API_KEY");
+    throw new Error("Missing API Key. In Vercel, add an Environment Variable named 'VITE_API_KEY' with your Gemini key.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   
   const tasks: { point: Point; seed: number | undefined }[] = [];
 

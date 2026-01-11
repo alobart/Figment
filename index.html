@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Nano Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -26,6 +26,14 @@
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #52525b; 
+      }
+      
+      html, body, #root {
+          height: 100%;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          background-color: #09090b; /* zinc-950 match */
       }
     </style>
   <script type="importmap">
