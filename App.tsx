@@ -36,8 +36,12 @@ const App: React.FC = () => {
     
     // Check for API Key presence
     const checkKey = async () => {
-       // If process.env.API_KEY is already populated (e.g. env var), we are good.
-       if (process.env.API_KEY) {
+       // Check Vite env vars first (most likely source in this setup)
+       // @ts-ignore
+       const viteKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+       
+       // If env var is populated, we are good.
+       if (viteKey || process.env.API_KEY) {
            setApiKeyReady(true);
            return;
        }
