@@ -2,9 +2,27 @@ import React, { Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Polyfill process for browser environment if needed
+// Polyfill process for browser environment and bridge Vite env vars
 if (typeof process === 'undefined') {
   (window as any).process = { env: {} };
+}
+
+// Bridge Vite's import.meta.env to process.env if available
+// This fixes Vercel deployments where process.env isn't automatically populated
+try {
+  // @ts-ignore
+  if (import.meta && import.meta.env) {
+    // @ts-ignore
+    const viteEnv = import.meta.env;
+    Object.keys(viteEnv).forEach(key => {
+        // Map VITE_API_KEY or just API_KEY if exposed
+        if (key === 'VITE_API_KEY' || key === 'API_KEY') {
+             (window as any).process.env.API_KEY = viteEnv[key];
+        }
+    });
+  }
+} catch (e) {
+  // Ignore if import.meta is not supported
 }
 
 interface ErrorBoundaryProps {
@@ -17,7 +35,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary to catch crashes (like missing environment variables or runtime errors)
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

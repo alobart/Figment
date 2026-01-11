@@ -4,7 +4,7 @@ import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
 import { generateImages } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
-import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key } from 'lucide-react';
+import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle } from 'lucide-react';
 
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: "",
@@ -61,6 +61,8 @@ const App: React.FC = () => {
               await window.aistudio.openSelectKey();
               // Race condition mitigation: Assume success immediately after return
               setApiKeyReady(true);
+              // Clear previous errors
+              setError(null);
           } catch (e) {
               console.error("Failed to select key:", e);
               // Reset if failed
@@ -114,11 +116,14 @@ const App: React.FC = () => {
       setHistory(prev => [...newImages, ...prev]);
       setCurrentBatch(newImages); 
     } catch (err: any) {
-      setError(err.message || "Failed to generate image.");
+      const errorMessage = err.message || "Failed to generate image.";
+      setError(errorMessage);
       
-      // If the error specifically mentions missing key, we might want to reset apiKeyReady if we are in a wrapper
-      if (err.message?.includes("API Key") && window.aistudio) {
-          setApiKeyReady(false);
+      // If the error specifically mentions missing key
+      if (errorMessage.includes("API Key")) {
+         if (window.aistudio) {
+             setApiKeyReady(false);
+         }
       }
     } finally {
       setIsGenerating(false);
@@ -156,7 +161,7 @@ const App: React.FC = () => {
       return <div className="h-[100dvh] w-full bg-zinc-950" />;
   }
 
-  // Key Selection Screen
+  // Key Selection Screen (Only for AI Studio Wrapper)
   if (!apiKeyReady && window.aistudio) {
       return (
           <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col items-center justify-center p-6 text-center text-zinc-100 animate-in fade-in duration-500">
@@ -328,16 +333,39 @@ const App: React.FC = () => {
                     </div>
 
                     {error && (
-                        <div className="text-red-400 text-sm bg-red-400/10 p-4 rounded-lg border border-red-400/20 animate-in fade-in slide-in-from-bottom-2 font-medium flex items-center justify-between">
-                            <span>{error}</span>
-                            {/* If error is related to key, offer button to fix if in wrapper */}
-                            {error.includes("API Key") && window.aistudio && (
-                                <button 
-                                    onClick={handleSelectApiKey}
-                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-md transition-colors"
-                                >
-                                    Select Key
-                                </button>
+                        <div className={`text-sm p-4 rounded-lg border font-medium flex flex-col gap-2 ${
+                            error.includes("API Key") 
+                            ? 'bg-amber-500/10 text-amber-200 border-amber-500/20' 
+                            : 'bg-red-400/10 text-red-300 border-red-400/20'
+                        } animate-in fade-in slide-in-from-bottom-2`}>
+                            <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    {error.includes("API Key") && <AlertTriangle className="w-4 h-4" />}
+                                    {error}
+                                </span>
+                                {/* If error is related to key and in AI Studio, offer button to fix */}
+                                {error.includes("API Key") && window.aistudio && (
+                                    <button 
+                                        onClick={handleSelectApiKey}
+                                        className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded-md transition-colors"
+                                    >
+                                        Select Key
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Vercel Specific Help Message */}
+                            {error.includes("API Key") && !window.aistudio && (
+                                <div className="text-xs text-zinc-400 pl-6 border-l-2 border-zinc-700 mt-1">
+                                    To fix this on Vercel:
+                                    <ol className="list-decimal pl-4 mt-1 space-y-1">
+                                        <li>Go to your Vercel Project Settings</li>
+                                        <li>Navigate to <strong>Environment Variables</strong></li>
+                                        <li>Add Key: <code className="bg-black/30 px-1 py-0.5 rounded text-zinc-300">API_KEY</code></li>
+                                        <li>Add Value: Your Gemini API Key</li>
+                                        <li>Redeploy your project</li>
+                                    </ol>
+                                </div>
                             )}
                         </div>
                     )}
