@@ -4,7 +4,7 @@ import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
 import { generateImages } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
-import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu } from 'lucide-react';
+import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key } from 'lucide-react';
 
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: "",
@@ -23,6 +23,7 @@ const DEFAULT_PARAMS: GenerationParams = {
 
 const App: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const [apiKeyReady, setApiKeyReady] = useState(false);
   const [params, setParams] = useState<GenerationParams>(DEFAULT_PARAMS);
   const [history, setHistory] = useState<GeneratedImage[]>([]);
   const [currentBatch, setCurrentBatch] = useState<GeneratedImage[]>([]);
@@ -32,7 +33,41 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check for API Key presence
+    const checkKey = async () => {
+       // If process.env.API_KEY is already populated (e.g. env var), we are good.
+       if (process.env.API_KEY) {
+           setApiKeyReady(true);
+           return;
+       }
+
+       // Otherwise, check if we can select one via AI Studio wrapper
+       if (window.aistudio) {
+           const hasSelected = await window.aistudio.hasSelectedApiKey();
+           setApiKeyReady(hasSelected);
+       } else {
+           // If not in a wrapper and no env var, we still let the app load.
+           // The generation service will throw a descriptive error if the key is missing at runtime.
+           setApiKeyReady(true);
+       }
+    };
+    checkKey();
   }, []);
+
+  const handleSelectApiKey = async () => {
+      if (window.aistudio) {
+          try {
+              await window.aistudio.openSelectKey();
+              // Race condition mitigation: Assume success immediately after return
+              setApiKeyReady(true);
+          } catch (e) {
+              console.error("Failed to select key:", e);
+              // Reset if failed
+              setApiKeyReady(false);
+          }
+      }
+  };
 
   const handleGenerate = async (overrideParams?: Partial<GenerationParams>) => {
     const currentParams = { ...params, ...overrideParams };
@@ -55,6 +90,12 @@ const App: React.FC = () => {
           setParams(generationParams);
       }
 
+      // Re-verify key availability just before generation if in wrapper
+      if (window.aistudio) {
+          // Force a fresh check or re-selection if needed could go here, 
+          // but relying on process.env injection is standard.
+      }
+
       const results = await generateImages(generationParams);
       
       if (results.length === 0) {
@@ -74,17 +115,18 @@ const App: React.FC = () => {
       setCurrentBatch(newImages); 
     } catch (err: any) {
       setError(err.message || "Failed to generate image.");
+      
+      // If the error specifically mentions missing key, we might want to reset apiKeyReady if we are in a wrapper
+      if (err.message?.includes("API Key") && window.aistudio) {
+          setApiKeyReady(false);
+      }
     } finally {
       setIsGenerating(false);
     }
   };
   
   const handleIterate = (image: GeneratedImage) => {
-      // Re-run with the same parameters. 
-      // Since seed is removed, the API will generate a new random variation automatically.
-      const iterationParams = { 
-          ...image.params
-      };
+      const iterationParams = { ...image.params };
       setParams(iterationParams);
       handleGenerate(iterationParams);
   };
@@ -112,6 +154,42 @@ const App: React.FC = () => {
   // Prevent white flash by rendering the dark background immediately
   if (!isMounted) {
       return <div className="h-[100dvh] w-full bg-zinc-950" />;
+  }
+
+  // Key Selection Screen
+  if (!apiKeyReady && window.aistudio) {
+      return (
+          <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col items-center justify-center p-6 text-center text-zinc-100 animate-in fade-in duration-500">
+                <div className="max-w-md w-full space-y-8 bg-zinc-900/50 p-8 rounded-3xl border border-zinc-800 shadow-2xl backdrop-blur-sm">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
+                         <Key className="w-10 h-10 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight mb-3">API Key Required</h1>
+                        <p className="text-zinc-400 leading-relaxed">
+                            To start creating with NanoStudio, you need to connect a valid Google Cloud API Key.
+                        </p>
+                    </div>
+                    
+                    <button 
+                        onClick={handleSelectApiKey}
+                        className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 text-lg"
+                    >
+                        <Key className="w-5 h-5" />
+                        Select API Key
+                    </button>
+                    
+                    <div className="pt-6 border-t border-zinc-800/50">
+                        <p className="text-xs text-zinc-500">
+                            By continuing, you agree to use a key from a paid project.<br/>
+                            <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
+                                View Billing Documentation
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+      );
   }
 
   return (
@@ -250,8 +328,17 @@ const App: React.FC = () => {
                     </div>
 
                     {error && (
-                        <div className="text-red-400 text-sm bg-red-400/10 p-4 rounded-lg border border-red-400/20 animate-in fade-in slide-in-from-bottom-2 font-medium">
-                            {error}
+                        <div className="text-red-400 text-sm bg-red-400/10 p-4 rounded-lg border border-red-400/20 animate-in fade-in slide-in-from-bottom-2 font-medium flex items-center justify-between">
+                            <span>{error}</span>
+                            {/* If error is related to key, offer button to fix if in wrapper */}
+                            {error.includes("API Key") && window.aistudio && (
+                                <button 
+                                    onClick={handleSelectApiKey}
+                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-md transition-colors"
+                                >
+                                    Select Key
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

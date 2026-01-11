@@ -2,6 +2,11 @@ import React, { Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Polyfill process for browser environment if needed
+if (typeof process === 'undefined') {
+  (window as any).process = { env: {} };
+}
+
 interface ErrorBoundaryProps {
   children?: ReactNode;
 }
@@ -12,7 +17,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary to catch crashes (like missing environment variables or runtime errors)
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
