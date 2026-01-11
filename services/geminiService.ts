@@ -139,7 +139,41 @@ interface GenerationResult {
     point: Point;
 }
 
+// Ensure process.env.API_KEY is populated before usage
+const ensureApiKey = () => {
+    // 1. Ensure global process object exists (if browser)
+    if (typeof window !== 'undefined' && !(window as any).process) {
+        (window as any).process = { env: {} };
+    }
+    
+    // 2. Ensure process.env exists
+    // @ts-ignore
+    if (typeof process !== 'undefined' && !process.env) {
+        // @ts-ignore
+        process.env = {};
+    }
+
+    // 3. Try to bridge VITE_API_KEY if process.env.API_KEY is missing
+    // @ts-ignore
+    if (typeof process !== 'undefined' && !process.env.API_KEY) {
+        try {
+            // Explicitly accessing import.meta.env.VITE_API_KEY triggers static replacement by Vite
+            // @ts-ignore
+            const viteKey = import.meta.env.VITE_API_KEY;
+            if (viteKey) {
+                // @ts-ignore
+                process.env.API_KEY = viteKey;
+            }
+        } catch (e) {
+            // import.meta might not be available in all envs
+        }
+    }
+};
+
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
+  // Check and populate key immediately before use
+  ensureApiKey();
+  
   // Use process.env.API_KEY directly as per SDK guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
