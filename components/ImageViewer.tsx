@@ -61,7 +61,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
     const handleDownload = (img: GeneratedImage) => {
         const link = document.createElement('a');
         link.href = img.url;
-        link.download = `nano-studio-${img.timestamp}.png`;
+        link.download = `figment-${img.timestamp}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -196,7 +196,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-6xl mx-auto h-full content-start py-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto h-full content-start py-8 pb-20">
                     {images.map((img, idx) => (
                         <div 
                             key={img.id} 

@@ -4,7 +4,7 @@ import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
 import { generateImages } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
-import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle } from 'lucide-react';
+import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle, Sparkles } from 'lucide-react';
 
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: "",
@@ -176,7 +176,7 @@ const App: React.FC = () => {
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight mb-3">API Key Required</h1>
                         <p className="text-zinc-400 leading-relaxed">
-                            To start creating with NanoStudio, you need to connect a valid Google Cloud API Key.
+                            To start creating with Figment, you need to connect a valid Google Cloud API Key.
                         </p>
                     </div>
                     
@@ -234,10 +234,10 @@ const App: React.FC = () => {
                  >
                     <Menu className="w-6 h-6" />
                  </button>
-                 <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-zinc-900 font-bold shrink-0">
-                    N
+                 <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-indigo-500/20">
+                    <Sparkles className="w-4 h-4 fill-white" />
                  </div>
-                 <h1 className="font-bold text-xl tracking-tight hidden sm:block">Nano<span className="text-yellow-400">Studio</span></h1>
+                 <h1 className="font-bold text-xl tracking-tight hidden sm:block text-zinc-100">Figment</h1>
             </div>
             <div className="text-xs text-zinc-500 font-mono hidden md:block">
                 Powered by {params.model}
