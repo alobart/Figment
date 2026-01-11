@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
@@ -31,12 +31,17 @@ const DEFAULT_PARAMS: GenerationParams = {
 };
 
 const App: React.FC = () => {
+  const [isMounted, setIsMounted] = useState(false);
   const [params, setParams] = useState<GenerationParams>(DEFAULT_PARAMS);
   const [history, setHistory] = useState<GeneratedImage[]>([]);
   const [currentBatch, setCurrentBatch] = useState<GeneratedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleGenerate = async (overrideParams?: Partial<GenerationParams>) => {
     const currentParams = { ...params, ...overrideParams };
@@ -116,6 +121,11 @@ const App: React.FC = () => {
   const clearUpload = () => {
       setParams(prev => ({ ...prev, uploadedImage: undefined }));
   };
+
+  // Prevent white flash by rendering the dark background immediately
+  if (!isMounted) {
+      return <div className="h-[100dvh] w-full bg-zinc-950" />;
+  }
 
   return (
     <div className="flex h-[100dvh] w-full bg-zinc-950 text-zinc-100 overflow-hidden">

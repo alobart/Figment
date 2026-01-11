@@ -2,20 +2,29 @@ import { GoogleGenAI } from "@google/genai";
 import { GenerationParams, StyleOption, Point, ColorPalette, Lighting, DepthOfField, ModelOption } from "../types";
 
 // --- SAFE API KEY RETRIEVAL ---
-// This prevents "ReferenceError: process is not defined" crashes on browsers
 const getApiKey = (): string | undefined => {
-  // 1. Try Vite (Most common for modern React apps)
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+  // 1. Vite / Modern Bundlers (Standard for Vercel + React)
+  // Accessing via import.meta.env is safe at runtime if bundled correctly
+  try {
     // @ts-ignore
-    return import.meta.env.VITE_API_KEY;
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+      // @ts-ignore
+      return import.meta.env.VITE_API_KEY;
+    }
+  } catch (e) {
+    // Ignore access errors
   }
-  
-  // 2. Try Standard Node/Process (Next.js, CRA, etc)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.NEXT_PUBLIC_API_KEY || 
-           process.env.REACT_APP_API_KEY || 
-           process.env.API_KEY;
+
+  // 2. Standard Process Env (Fallbacks)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.NEXT_PUBLIC_API_KEY || 
+             process.env.REACT_APP_API_KEY || 
+             process.env.API_KEY ||
+             process.env.VITE_API_KEY;
+    }
+  } catch (e) {
+    // Ignore
   }
 
   return undefined;
@@ -161,10 +170,9 @@ interface GenerationResult {
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
   const apiKey = getApiKey();
   
-  // SECURITY CHECK: Ensure API Key is present in one of the standard env locations
   if (!apiKey) {
-    console.error("API Key not found. Checked: VITE_API_KEY, NEXT_PUBLIC_API_KEY, REACT_APP_API_KEY, API_KEY");
-    throw new Error("Missing API Key. In Vercel, add an Environment Variable named 'VITE_API_KEY' with your Gemini key.");
+    // This will be caught by the UI error handler
+    throw new Error("API Key missing. Please set VITE_API_KEY in Vercel Environment Variables.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
