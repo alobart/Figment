@@ -1,8 +1,7 @@
 import React from 'react';
 import { GenerationParams, StyleOption, NEGATIVE_PROMPTS_OPTIONS, Point, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from '../types';
-import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, Zap, RefreshCw } from 'lucide-react';
+import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture } from 'lucide-react';
 import { MatrixPlotter } from './MatrixPlotter';
-import { SeedDial } from './SeedDial';
 
 interface SidebarProps {
   params: GenerationParams;
@@ -177,56 +176,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
             className="w-full h-8 bg-transparent rounded-lg cursor-pointer accent-indigo-500 hover:accent-indigo-400"
             disabled={isGenerating}
           />
-        </div>
-
-        {/* Chaos Dial (Seed) */}
-        <div className="space-y-3 bg-zinc-800/30 p-3 rounded-xl border border-zinc-800 mt-2">
-             <div className="flex items-center justify-between">
-                 <label className="text-sm font-medium text-zinc-300 flex items-center gap-3 cursor-pointer select-none py-2">
-                    <input 
-                        type="checkbox"
-                        checked={params.useChaosDial}
-                        onChange={(e) => setParams(prev => ({...prev, useChaosDial: e.target.checked}))}
-                        className="w-5 h-5 rounded border-zinc-600 bg-zinc-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-zinc-900 accent-indigo-500"
-                    />
-                    <div className="flex items-center gap-2">
-                        <Zap className={`w-4 h-4 ${params.useChaosDial ? 'text-amber-400' : 'text-zinc-500'}`} />
-                        Entropy Dial
-                    </div>
-                </label>
-                 {params.useChaosDial && (
-                    <div className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
-                        S: {params.seed}
-                    </div>
-                 )}
-            </div>
-            
-            {params.useChaosDial ? (
-                 <SeedDial 
-                    angle={params.seedAngle}
-                    seed={params.seed}
-                    onChange={(angle, seed) => setParams(prev => ({ ...prev, seedAngle: angle, seed: seed }))}
-                />
-            ) : (
-                <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <div className="flex-1 space-y-1">
-                        <label className="text-[10px] uppercase font-bold text-zinc-500">Manual Seed</label>
-                        <input 
-                            type="number" 
-                            value={params.seed}
-                            onChange={(e) => setParams(prev => ({...prev, seed: parseInt(e.target.value) || 0}))}
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded p-3 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 font-mono"
-                        />
-                    </div>
-                     <button 
-                        onClick={() => setParams(prev => ({...prev, seed: Math.floor(Math.random() * 999999)}))}
-                        className="mt-4 p-3 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-white transition-colors border border-zinc-600"
-                        title="Generate Random Seed"
-                    >
-                        <RefreshCw className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
         </div>
 
         {/* Style Matrix */}

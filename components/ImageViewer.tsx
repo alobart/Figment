@@ -168,10 +168,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
                         </div>
                         <div className="flex flex-wrap gap-4 text-xs text-zinc-500 font-mono">
                              <div className="flex items-center gap-1">
-                                <span className="text-zinc-600">Seed:</span> 
-                                <span className="text-zinc-300">{activeImage.params.seed}</span>
-                             </div>
-                             <div className="flex items-center gap-1">
                                 <span className="text-zinc-600">Styles:</span>
                                 <span className="text-zinc-300">{activeImage.params.styleA} + {activeImage.params.styleB}</span>
                              </div>

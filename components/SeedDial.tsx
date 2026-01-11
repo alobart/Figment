@@ -7,10 +7,13 @@ interface SeedDialProps {
     onChange: (angle: number, seed: number) => void;
 }
 
+const MAX_SEED_VALUE = 2147483647; // Max 32-bit signed integer
+
 const getSeedFromAngle = (angle: number): number => {
     const chaos = Math.sin(angle * 12.9898) * 43758.5453;
     const largeInt = Math.floor(Math.abs(chaos) * 1000000);
-    return largeInt;
+    // Modulo by max int32 to keep API happy
+    return largeInt % MAX_SEED_VALUE;
 };
 
 export const SeedDial: React.FC<SeedDialProps> = ({ angle, seed, onChange }) => {

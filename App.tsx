@@ -6,18 +6,9 @@ import { generateImages } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
 import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu } from 'lucide-react';
 
-const INITIAL_ANGLE = Math.floor(Math.random() * 360);
-const getInitialSeed = (angle: number) => {
-    const chaos = Math.sin(angle * 12.9898) * 43758.5453;
-    return Math.floor(Math.abs(chaos) * 1000000);
-}
-
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: "",
   imageCount: 1,
-  seed: getInitialSeed(INITIAL_ANGLE),
-  seedAngle: INITIAL_ANGLE,
-  useChaosDial: true,
   styleA: StyleOption.CYBERPUNK,
   styleB: StyleOption.REALISTIC,
   matrixPoints: [{ x: 0.5, y: 0.5 }],
@@ -89,14 +80,10 @@ const App: React.FC = () => {
   };
   
   const handleIterate = (image: GeneratedImage) => {
-      const randomAngle = Math.floor(Math.random() * 360);
-      const chaos = Math.sin(randomAngle * 12.9898) * 43758.5453;
-      const newSeed = Math.floor(Math.abs(chaos) * 1000000);
-
+      // Re-run with the same parameters. 
+      // Since seed is removed, the API will generate a new random variation automatically.
       const iterationParams = { 
-          ...image.params, 
-          seed: newSeed,
-          seedAngle: randomAngle
+          ...image.params
       };
       setParams(iterationParams);
       handleGenerate(iterationParams);

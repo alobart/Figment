@@ -1,35 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { GenerationParams, StyleOption, Point, ColorPalette, Lighting, DepthOfField, ModelOption } from "../types";
 
-// --- SAFE API KEY RETRIEVAL ---
-const getApiKey = (): string | undefined => {
-  // 1. Vite / Modern Bundlers (Standard for Vercel + React)
-  // Accessing via import.meta.env is safe at runtime if bundled correctly
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
-      // @ts-ignore
-      return import.meta.env.VITE_API_KEY;
-    }
-  } catch (e) {
-    // Ignore access errors
-  }
-
-  // 2. Standard Process Env (Fallbacks)
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.NEXT_PUBLIC_API_KEY || 
-             process.env.REACT_APP_API_KEY || 
-             process.env.API_KEY ||
-             process.env.VITE_API_KEY;
-    }
-  } catch (e) {
-    // Ignore
-  }
-
-  return undefined;
-};
-
 // Helper to clean base64 string for API usage
 const extractBase64Data = (dataUrl: string): string => {
   return dataUrl.split(',')[1] || "";
@@ -102,6 +73,7 @@ const STYLE_PROMPTS: Record<string, string> = {
   [StyleOption.PAPERCRAFT]: "layered paper cutting art, depth and shadows, origami textures, handmade craft aesthetic, vibrant paper colors, tactile 3d effect, shadow box diorama",
   [StyleOption.GRAFFITI]: "urban street art, spray paint textures, vibrant graffiti mural, drip effects, bold tags, hip-hop culture, concrete wall background, wildstyle lettering",
   [StyleOption.STAINED_GLASS]: "stained glass window art, illuminated mosaic, vibrant translucent colors, heavy lead lines, religious or geometric patterns, light refraction, glowing glass",
+  [StyleOption.SESAME]: "Sesame Street style, Jim Henson muppet aesthetic, fuzzy felt texture, foam puppets, colorful fur, googly eyes, playful television studio lighting, 1980s PBS aesthetic, fabric textures, soft focus background",
   [StyleOption.NONE]: ""
 };
 
@@ -168,38 +140,31 @@ interface GenerationResult {
 }
 
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
-  const apiKey = getApiKey();
+  // Use process.env.API_KEY directly as per SDK guidelines
+  const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    // This will be caught by the UI error handler
-    throw new Error("API Key missing. Please set VITE_API_KEY in Vercel Environment Variables.");
+    throw new Error("API Key missing. process.env.API_KEY must be set.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   
-  const tasks: { point: Point; seed: number | undefined }[] = [];
+  const tasks: { point: Point }[] = [];
 
   if (params.matrixPoints.length > 1) {
-    params.matrixPoints.forEach((point, index) => {
-        tasks.push({
-            point,
-            seed: params.seed + index // Deterministic batch
-        });
+    params.matrixPoints.forEach((point) => {
+        tasks.push({ point });
     });
   } else {
     const point = params.matrixPoints[0] || { x: 0, y: 0 };
     for (let i = 0; i < params.imageCount; i++) {
-        tasks.push({
-            point,
-            seed: params.seed + i // Deterministic batch
-        });
+        tasks.push({ point });
     }
   }
 
   const promises = tasks.map(async (task) => {
     const finalPrompt = constructEnrichedPrompt(params, task.point);
     const config: any = { 
-        seed: task.seed,
         imageConfig: {
             aspectRatio: params.aspectRatio
         }

@@ -1,3 +1,4 @@
+
 export interface Point {
   x: number;
   y: number;
@@ -58,9 +59,7 @@ export enum DepthOfField {
 export interface GenerationParams {
   prompt: string;
   imageCount: number;
-  seed: number;
-  seedAngle: number; // Tracks the visual position of the dial (0-360)
-  useChaosDial: boolean; // Toggles between Dial and Manual input
+  // Seed removed
   styleA: string;
   styleB: string;
   matrixPoints: Point[]; 
@@ -105,7 +104,8 @@ export enum StyleOption {
   GLITCH = "Glitch Art",
   PAPERCRAFT = "Papercraft Layered",
   GRAFFITI = "Street Art Graffiti",
-  STAINED_GLASS = "Stained Glass"
+  STAINED_GLASS = "Stained Glass",
+  SESAME = "Sesame Street Puppet"
 }
 
 export const NEGATIVE_PROMPTS_OPTIONS = [
