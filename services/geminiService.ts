@@ -153,7 +153,7 @@ export const generateImages = async (params: GenerationParams): Promise<Generati
   }
 
   if (!apiKey) {
-      throw new Error("API Key not found. Please set VITE_API_KEY in your environment variables.");
+      throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in your environment variables.");
   }
   
   const ai = new GoogleGenAI({ apiKey });

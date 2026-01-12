@@ -36,12 +36,14 @@ const App: React.FC = () => {
     
     // Check for API Key presence
     const checkKey = async () => {
-       // Check Vite env vars first (most likely source in this setup)
+       // Check VITE_GEMINI_API_KEY specifically first
        // @ts-ignore
-       const viteKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+       const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+       // @ts-ignore
+       const viteKey = import.meta.env.VITE_API_KEY;
        
        // If env var is populated, we are good.
-       if (viteKey || process.env.API_KEY) {
+       if (geminiKey || viteKey || process.env.API_KEY) {
            setApiKeyReady(true);
            return;
        }
@@ -362,7 +364,7 @@ const App: React.FC = () => {
                             {error.includes("API Key") && !window.aistudio && (
                                 <div className="text-xs text-zinc-400 pl-6 border-l-2 border-zinc-700 mt-1">
                                     <span className="font-semibold text-red-400">Environment Variable Missing:</span><br/>
-                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">VITE_API_KEY</code> is set in your Vercel Project Settings and you have redeployed.
+                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">VITE_GEMINI_API_KEY</code> is set in your Vercel Project Settings and you have redeployed.
                                 </div>
                             )}
                         </div>
