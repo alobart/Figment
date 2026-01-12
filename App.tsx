@@ -34,16 +34,13 @@ const App: React.FC = () => {
   useEffect(() => {
     setIsMounted(true);
     
-    // Check for API Key presence
+    // Check for API Key presence via Vite env vars
     const checkKey = async () => {
-       // Check VITE_GEMINI_API_KEY specifically first
-       // @ts-ignore
-       const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-       // @ts-ignore
-       const viteKey = import.meta.env.VITE_API_KEY;
+       // Cast to any to avoid TS errors regarding missing env property on import.meta
+       const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+       const viteKey = (import.meta as any).env.VITE_API_KEY;
        
-       // If env var is populated, we are good.
-       if (geminiKey || viteKey || process.env.API_KEY) {
+       if (geminiKey || viteKey) {
            setApiKeyReady(true);
            return;
        }
@@ -100,8 +97,7 @@ const App: React.FC = () => {
 
       // Re-verify key availability just before generation if in wrapper
       if (window.aistudio) {
-          // Force a fresh check or re-selection if needed could go here, 
-          // but relying on process.env injection is standard.
+          // Force a fresh check or re-selection if needed could go here.
       }
 
       const results = await generateImages(generationParams);

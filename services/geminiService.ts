@@ -140,20 +140,13 @@ interface GenerationResult {
 }
 
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
-  // Use process.env.API_KEY directly as per strict guidelines.
-  // The environment (index.tsx) ensures process.env.API_KEY is populated from various sources if needed.
-  // We add a safety check for 'process' to avoid ReferenceError in strict browser environments.
-  let apiKey: string | undefined;
-  
-  try {
-      apiKey = process.env.API_KEY;
-  } catch (e) {
-      // process is not defined, try window shim
-      apiKey = (window as any).process?.env?.API_KEY;
-  }
+  // Use VITE_GEMINI_API_KEY from import.meta.env
+  // Fallback to VITE_API_KEY if needed.
+  // Cast import.meta to any to avoid TS errors if types are not configured for Vite
+  const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.VITE_API_KEY;
 
   if (!apiKey) {
-      throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in your environment variables.");
+      throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in your Vercel Project Settings.");
   }
   
   const ai = new GoogleGenAI({ apiKey });
