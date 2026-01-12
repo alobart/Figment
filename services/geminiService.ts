@@ -140,10 +140,9 @@ interface GenerationResult {
 }
 
 export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
-  // Use import.meta.env directly for Vite support
-  // We check VITE_API_KEY (from your Vercel screenshot) and VITE_GEMINI_API_KEY (from your instruction text)
-  // @ts-ignore
-  const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || process.env.API_KEY;
+  // Use process.env.API_KEY directly as per strict guidelines.
+  // The environment (index.tsx) ensures process.env.API_KEY is populated from various sources if needed.
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
       throw new Error("API Key not found. Please set VITE_API_KEY in your environment variables.");

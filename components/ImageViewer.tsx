@@ -149,7 +149,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
                     {/* Image Container */}
                     <div className="flex-1 overflow-hidden flex items-center justify-center bg-zinc-950/50 p-1 select-none">
                         <img 
-                            key={activeImage.id} // Key change triggers animation if we want, but usually standard replacement is smoother
+                            key={activeImage.id} 
                             src={activeImage.url} 
                             alt={activeImage.prompt} 
                             className="max-w-full max-h-full object-contain shadow-lg animate-in fade-in duration-300"
@@ -196,7 +196,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto h-full content-start py-8 pb-20">
+                {/* 
+                   Fixed Layout: 
+                   1. Removed h-full from grid container to allow natural height expansion.
+                   2. Increased gap to gap-8 (2rem) to prevent visual overlap.
+                   3. Increased bottom padding (pb-32) so images don't feel cut off by any potential floating elements.
+                */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto content-start py-8 pb-32">
                     {images.map((img, idx) => (
                         <div 
                             key={img.id} 

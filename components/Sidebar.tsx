@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GenerationParams, StyleOption, NEGATIVE_PROMPTS_OPTIONS, Point, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from '../types';
-import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture } from 'lucide-react';
+import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, MoreHorizontal, MoreVertical } from 'lucide-react';
 import { MatrixPlotter } from './MatrixPlotter';
 
 interface SidebarProps {
@@ -11,8 +11,12 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+type PatternMode = 'free' | 'vertical' | 'horizontal';
+
 export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGenerating, isOpen, onClose }) => {
-  
+  const [activePattern, setActivePattern] = useState<PatternMode>('free');
+  const [spacing, setSpacing] = useState(0.5);
+
   const handleStyleChange = (key: 'styleA' | 'styleB', value: string) => {
     setParams(prev => ({ ...prev, [key]: value }));
   };
@@ -28,16 +32,93 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
     });
   };
 
-  const setMatrixPattern = (type: 'single' | 'corners' | 'diamond' | 'grid' | 'free4') => {
+  const setMatrixPattern = (type: 'single' | 'corners' | 'diamond' | 'grid' | 'free4' | 'vertical' | 'horizontal') => {
       let newPoints: Point[] = [];
+      let newMode: PatternMode = 'free';
+
       switch (type) {
-          case 'single': newPoints = [{ x: 0, y: 0 }]; break;
-          case 'corners': newPoints = [{ x: -0.9, y: 0.9 }, { x: 0.9, y: 0.9 }, { x: -0.9, y: -0.9 }, { x: 0.9, y: -0.9 }]; break;
-          case 'diamond': newPoints = [{ x: 0, y: 0.9 }, { x: 0.9, y: 0 }, { x: 0, y: -0.9 }, { x: -0.9, y: 0 }]; break;
-          case 'grid': newPoints = [{ x: 0, y: 0 }, { x: 0.8, y: 0.8 }, { x: -0.8, y: 0.8 }, { x: 0.8, y: -0.8 }, { x: -0.8, y: -0.8 }]; break;
-          case 'free4': newPoints = [{ x: -0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: -0.5, y: -0.5 }, { x: 0.5, y: -0.5 }]; break;
+          case 'single': 
+              newPoints = [{ x: 0, y: 0 }]; 
+              break;
+          case 'corners': 
+              newPoints = [{ x: -0.9, y: 0.9 }, { x: 0.9, y: 0.9 }, { x: -0.9, y: -0.9 }, { x: 0.9, y: -0.9 }]; 
+              break;
+          case 'diamond': 
+              newPoints = [{ x: 0, y: 0.9 }, { x: 0.9, y: 0 }, { x: 0, y: -0.9 }, { x: -0.9, y: 0 }]; 
+              break;
+          case 'grid': 
+              newPoints = [{ x: 0, y: 0 }, { x: 0.8, y: 0.8 }, { x: -0.8, y: 0.8 }, { x: 0.8, y: -0.8 }, { x: -0.8, y: -0.8 }]; 
+              break;
+          case 'free4': 
+              newPoints = [{ x: -0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: -0.5, y: -0.5 }, { x: 0.5, y: -0.5 }]; 
+              break;
+          case 'vertical':
+              newMode = 'vertical';
+              // create 3 points
+              newPoints = [
+                  { x: 0, y: spacing },
+                  { x: 0, y: 0 },
+                  { x: 0, y: -spacing }
+              ];
+              break;
+          case 'horizontal':
+              newMode = 'horizontal';
+              // create 3 points
+              newPoints = [
+                  { x: -spacing, y: 0 },
+                  { x: 0, y: 0 },
+                  { x: spacing, y: 0 }
+              ];
+              break;
       }
+      setActivePattern(newMode);
       setParams(prev => ({ ...prev, matrixPoints: newPoints }));
+  };
+
+  const handleSpacingChange = (newSpacing: number) => {
+      setSpacing(newSpacing);
+      
+      // Update existing points based on centroid
+      if (activePattern === 'vertical' || activePattern === 'horizontal') {
+          setParams(prev => {
+              const points = prev.matrixPoints;
+              if (points.length === 0) return prev;
+
+              // Calculate Centroid
+              const cx = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+              const cy = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+
+              const count = points.length;
+              const newPoints = points.map((_, idx) => {
+                  const offset = (idx - (count - 1) / 2) * newSpacing;
+                  
+                  if (activePattern === 'vertical') {
+                       return { 
+                           x: parseFloat(cx.toFixed(2)), 
+                           y: parseFloat((cy - offset).toFixed(2)) // y grows up, but array idx usually top-down? 
+                           // Let's stick to simple logic: top point is positive y? 
+                           // In plotter: Y is up? 
+                           // Plotter logic: percentY = ((-p.y + 1) / 2) * 100;
+                           // So +1 is Top (0%), -1 is Bottom (100%).
+                           // Let's make index 0 the top one (+spacing), index last the bottom one.
+                       };
+                  } else {
+                       return {
+                           x: parseFloat((cx + offset).toFixed(2)),
+                           y: parseFloat(cy.toFixed(2))
+                       };
+                  }
+              });
+
+              // Basic bound clamping for the generated points
+              const clampedPoints = newPoints.map(p => ({
+                  x: Math.max(-1, Math.min(1, p.x)),
+                  y: Math.max(-1, Math.min(1, p.y))
+              }));
+
+              return { ...prev, matrixPoints: clampedPoints };
+          });
+      }
   };
 
   const isMultiPoint = params.matrixPoints.length > 1;
@@ -158,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
             </select>
         </div>
         
-        {/* Count Slider */}
+        {/* Count Slider - Disabled in Matrix mode (roughly) */}
         <div className={`space-y-2 pt-2 border-t border-zinc-800 transition-opacity ${isMultiPoint ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between text-sm text-zinc-400">
             <span>Image Count</span>
@@ -213,30 +294,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
                 onChange={(points) => setParams(prev => ({ ...prev, matrixPoints: points }))}
                 labelX={params.styleA}
                 labelY={params.styleB}
+                mode={activePattern}
             />
 
             {/* Shape Presets */}
-            <div className="grid grid-cols-5 gap-2">
-                <button onClick={() => setMatrixPattern('single')} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Single Point">
+            <div className="grid grid-cols-7 gap-2">
+                <button onClick={() => setMatrixPattern('single')} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Single Point">
                     <MousePointer2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => setMatrixPattern('corners')} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Corners">
+                <button onClick={() => setMatrixPattern('corners')} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Corners">
                     <Square className="w-4 h-4" />
                 </button>
-                <button onClick={() => setMatrixPattern('diamond')} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Diamond">
+                <button onClick={() => setMatrixPattern('diamond')} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Diamond">
                     <Diamond className="w-4 h-4" />
                 </button>
-                <button onClick={() => setMatrixPattern('grid')} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Grid / Cross">
+                <button onClick={() => setMatrixPattern('grid')} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Grid">
                     <LayoutGrid className="w-4 h-4" />
                 </button>
-                <button onClick={() => setMatrixPattern('free4')} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Free 4 Points">
+                 <button onClick={() => setMatrixPattern('free4')} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Free Points">
                     <Move className="w-4 h-4" />
                 </button>
+                <button onClick={() => setMatrixPattern('vertical')} className={`p-2 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors ${activePattern === 'vertical' ? 'bg-indigo-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700'}`} title="Vertical Line">
+                    <MoreVertical className="w-4 h-4" />
+                </button>
+                <button onClick={() => setMatrixPattern('horizontal')} className={`p-2 rounded text-zinc-400 hover:text-white flex items-center justify-center transition-colors ${activePattern === 'horizontal' ? 'bg-indigo-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700'}`} title="Horizontal Line">
+                    <MoreHorizontal className="w-4 h-4" />
+                </button>
             </div>
+
+            {/* Dynamic Spacing Slider */}
+            {(activePattern === 'vertical' || activePattern === 'horizontal') && (
+                <div className="pt-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                        <span>Point Spacing</span>
+                        <span className="font-mono text-indigo-400">{spacing.toFixed(2)}</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0.1"
+                        max="0.9"
+                        step="0.05"
+                        value={spacing}
+                        onChange={(e) => handleSpacingChange(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                </div>
+            )}
+
             {isMultiPoint && (
                 <div className="text-[10px] text-zinc-500 text-center">
-                    Generating {params.matrixPoints.length} images based on matrix points. <br/>
-                    Drag points to customize style influence.
+                    Generating {params.matrixPoints.length} images. <br/>
+                    {activePattern !== 'free' ? 'Drag any point to move the entire group.' : 'Drag points to customize style influence.'}
                 </div>
             )}
         </div>
