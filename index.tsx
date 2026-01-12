@@ -1,4 +1,4 @@
-import React, { Component, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
@@ -12,24 +12,27 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// 2. bridge Vite env vars to process.env.API_KEY
+// 2. Bridge Vite env vars to process.env.API_KEY
 // CRITICAL: We must access import.meta.env.VITE_API_KEY directly 
 // so the bundler performs static string replacement.
 try {
   // @ts-ignore
   const viteKey = import.meta.env.VITE_API_KEY;
   // @ts-ignore
+  const viteGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  // @ts-ignore
   const standardKey = import.meta.env.API_KEY;
   // @ts-ignore
   const nextKey = import.meta.env.NEXT_PUBLIC_API_KEY;
 
-  const keyToUse = viteKey || standardKey || nextKey;
+  const keyToUse = viteKey || viteGeminiKey || standardKey || nextKey;
 
   if (keyToUse) {
     (window as any).process.env.API_KEY = keyToUse;
   }
 } catch (e) {
   // Ignore reference errors if import.meta is not available
+  console.warn("Failed to bridge environment variables", e);
 }
 
 interface ErrorBoundaryProps {
@@ -42,7 +45,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary to catch crashes
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
