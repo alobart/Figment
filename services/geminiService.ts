@@ -74,7 +74,19 @@ const STYLE_PROMPTS: Record<string, string> = {
   [StyleOption.GRAFFITI]: "urban street art, spray paint textures, vibrant graffiti mural, drip effects, bold tags, hip-hop culture, concrete wall background, wildstyle lettering",
   [StyleOption.STAINED_GLASS]: "stained glass window art, illuminated mosaic, vibrant translucent colors, heavy lead lines, religious or geometric patterns, light refraction, glowing glass",
   [StyleOption.SESAME]: "Sesame Street style, Jim Henson muppet aesthetic, fuzzy felt texture, foam puppets, colorful fur, googly eyes, playful television studio lighting, 1980s PBS aesthetic, fabric textures, soft focus background",
-  [StyleOption.NONE]: ""
+  [StyleOption.NONE]: "",
+  
+  // New Styles
+  [StyleOption.DIORAMA]: "museum diorama, taxidermy display, natural history museum, glass case reflection, painted backdrop, realistic fur texture, still life, educational display, soft overhead spot lighting",
+  [StyleOption.MINIATURE]: "hand-painted miniature wargaming figure, citadel paints style, edge highlighting, washes and shading, plastic model texture, tabletop terrain background, macro photography, depth of field, high contrast painting",
+  [StyleOption.COLLAGE]: "photomontage, mixed media collage, overlapping photographs, ripped paper edges, chaotic composition, multiple perspectives, dadaist style, cut and paste aesthetic",
+  [StyleOption.MOSAIC]: "organic mosaic art, arranged pebbles and tiles, natural stones, grout texture, ancient roman style, intricate geometric patterns, tactile surface, uneven handmade look",
+  [StyleOption.TIE_DYE]: "tie-dye fabric pattern, psychedelic spiral, vibrant bleeding colors, hippie aesthetic, fabric texture, 60s counterculture, liquid organic shapes, saturation",
+  [StyleOption.POINTILLISM]: "pointillism technique, georges seurat style, distinct small dots of color, optical blending, stippling, fine detail, vibrant luminosity, divisionism",
+  [StyleOption.PS1]: "PS1 aesthetics, 32-bit graphics, affine texture mapping, jittery polygons, low resolution textures, jagged edges, dithering, 90s console gaming, CRT filter",
+  [StyleOption.GUNPLA]: "gunpla plastic model kit, injection molding, panel lining, decals and stickers, articulated joints, sprue marks, scale model photography, satin finish, mecha hobby",
+  [StyleOption.KAWAII]: "kawaii aesthetic, sanrio style, pastel colors, cute rounded shapes, blushing cheeks, sparkles and hearts, vector illustration, soft outlines, adorable character design",
+  [StyleOption.TOULOUSE]: "henri de toulouse-lautrec style, moulin rouge poster, lithograph texture, bold silhouette, expressive outlines, flat colors, belle epoque atmosphere, cabaret art"
 };
 
 const constructEnrichedPrompt = (params: GenerationParams, point: Point): string => {

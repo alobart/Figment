@@ -105,7 +105,18 @@ export enum StyleOption {
   PAPERCRAFT = "Papercraft Layered",
   GRAFFITI = "Street Art Graffiti",
   STAINED_GLASS = "Stained Glass",
-  SESAME = "Sesame Street Puppet"
+  SESAME = "Sesame Street Puppet",
+  // New Styles
+  DIORAMA = "Museum Diorama",
+  MINIATURE = "Wargaming Miniature",
+  COLLAGE = "Photo Collage",
+  MOSAIC = "Organic Mosaic",
+  TIE_DYE = "Tie Dye",
+  POINTILLISM = "Pointillism",
+  PS1 = "PS1 Graphics",
+  GUNPLA = "Gunpla Model",
+  KAWAII = "Kawaii",
+  TOULOUSE = "Toulouse-Lautrec"
 }
 
 export const NEGATIVE_PROMPTS_OPTIONS = [
