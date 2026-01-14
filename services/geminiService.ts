@@ -184,6 +184,11 @@ export const generateImages = async (params: GenerationParams): Promise<Generati
         }
     };
     
+    // Pass seed if custom seed is enabled
+    if (params.useCustomSeed) {
+        config.seed = params.seed;
+    }
+    
     if (params.model === ModelOption.PRO) {
         config.imageConfig.imageSize = "1K";
     }

@@ -59,7 +59,9 @@ export enum DepthOfField {
 export interface GenerationParams {
   prompt: string;
   imageCount: number;
-  // Seed removed
+  seed: number;
+  useCustomSeed: boolean;
+  seedAngle: number; // Used to persist the visual state of the dial
   styleA: string;
   styleB: string;
   matrixPoints: Point[]; 

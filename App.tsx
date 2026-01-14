@@ -9,6 +9,9 @@ import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: "",
   imageCount: 1,
+  seed: 12345,
+  useCustomSeed: false,
+  seedAngle: 0,
   styleA: StyleOption.CYBERPUNK,
   styleB: StyleOption.REALISTIC,
   matrixPoints: [{ x: 0.5, y: 0.5 }],

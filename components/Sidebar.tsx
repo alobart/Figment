@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { GenerationParams, StyleOption, NEGATIVE_PROMPTS_OPTIONS, Point, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from '../types';
-import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, MoreHorizontal, MoreVertical } from 'lucide-react';
+import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, MoreHorizontal, MoreVertical, Dices } from 'lucide-react';
 import { MatrixPlotter } from './MatrixPlotter';
+import { SeedDial } from './SeedDial';
 
 interface SidebarProps {
   params: GenerationParams;
@@ -19,6 +20,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
 
   const handleStyleChange = (key: 'styleA' | 'styleB', value: string) => {
     setParams(prev => ({ ...prev, [key]: value }));
+  };
+
+  const toggleSeed = () => {
+    setParams(prev => ({ ...prev, useCustomSeed: !prev.useCustomSeed }));
   };
 
   const toggleNegativePrompt = (option: string) => {
@@ -237,6 +242,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
                 <option value={DepthOfField.SHALLOW}>{DepthOfField.SHALLOW}</option>
                 <option value={DepthOfField.DEEP}>{DepthOfField.DEEP}</option>
             </select>
+        </div>
+
+        {/* Randomness Control (Seed) */}
+        <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Dices className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-semibold text-zinc-200">Custom Seed</span>
+                </div>
+                <button 
+                    onClick={toggleSeed}
+                    className={`w-10 h-6 rounded-full p-1 transition-colors ${
+                        params.useCustomSeed ? 'bg-indigo-600' : 'bg-zinc-700'
+                    }`}
+                >
+                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
+                        params.useCustomSeed ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                </button>
+            </div>
+
+            {params.useCustomSeed && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                    <SeedDial 
+                        angle={params.seedAngle} 
+                        seed={params.seed} 
+                        onChange={(angle, seed) => setParams(prev => ({ ...prev, seedAngle: angle, seed: seed }))} 
+                    />
+                    <div className="mt-2 text-[10px] text-zinc-500 font-mono text-center">
+                        Active Seed: {params.seed}
+                    </div>
+                </div>
+            )}
         </div>
         
         {/* Count Slider - Disabled in Matrix mode (roughly) */}
