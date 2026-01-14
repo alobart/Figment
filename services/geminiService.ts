@@ -93,57 +93,78 @@ const constructEnrichedPrompt = (params: GenerationParams, point: Point): string
   const { prompt, styleA, styleB, negativePrompts, colorPalette, lighting, depthOfField } = params;
   const { x: matrixX, y: matrixY } = point;
   
-  let enrichedPrompt = `Subject: ${prompt}.`;
+  // Structured Prompt Construction
+  const sections: string[] = [];
 
-  // Apply Modifiers
+  // 1. CORE SUBJECT
+  sections.push(`[SUBJECT]\n${prompt}`);
+
+  // 2. STYLE MATRIX & MIXING (High Precision)
+  const styleDirectives: string[] = [];
+  const negativeStyleDirectives: string[] = [];
+  
+  const processStyleAxis = (styleName: string, intensity: number) => {
+      if (styleName === StyleOption.NONE || !STYLE_PROMPTS[styleName]) return;
+
+      const keywords = STYLE_PROMPTS[styleName];
+      // Micro-deadzone to avoid floating point noise at strict 0, but allow 1% granularity
+      if (Math.abs(intensity) < 0.01) return;
+
+      const percentage = (Math.abs(intensity) * 100).toFixed(0);
+
+      if (intensity > 0) {
+          // Positive application with granular weight
+          styleDirectives.push(`   - Style: "${styleName}" | Influence: ${percentage}% | Visuals: ${keywords}`);
+      } else {
+          // Negative application (Avoidance) with granular weight
+          negativeStyleDirectives.push(`   - Avoid Style: "${styleName}" | Strictness: ${percentage}% | Exclude: ${keywords}`);
+      }
+  };
+
+  processStyleAxis(styleA, matrixX);
+  processStyleAxis(styleB, matrixY);
+
+  if (styleDirectives.length > 0) {
+      sections.push(`[STYLE MIXING]
+The AI should blend the following styles according to their exact percentage influence (0-100%):
+${styleDirectives.join('\n')}`);
+  }
+
+  if (negativeStyleDirectives.length > 0) {
+       sections.push(`[STYLE EXCLUSIONS]
+The AI must actively avoid these specific style elements with the specified strictness (0-100%):
+${negativeStyleDirectives.join('\n')}`);
+  }
+
+  // 3. ATMOSPHERE & TECHNICAL
+  const atmosphere: string[] = [];
+  
   if (lighting && LIGHTING_PROMPTS[lighting]) {
-    enrichedPrompt += ` Lighting: ${LIGHTING_PROMPTS[lighting]}.`;
+      atmosphere.push(`Lighting: ${LIGHTING_PROMPTS[lighting]}`);
   }
   
   if (depthOfField && DEPTH_PROMPTS[depthOfField]) {
-    enrichedPrompt += ` Focus: ${DEPTH_PROMPTS[depthOfField]}.`;
+      atmosphere.push(`Depth of Field: ${DEPTH_PROMPTS[depthOfField]}`);
   }
 
   if (colorPalette && COLOR_PALETTE_PROMPTS[colorPalette]) {
-    enrichedPrompt += ` Color Scheme: ${COLOR_PALETTE_PROMPTS[colorPalette]}.`;
-  }
-
-  const getStyleInstruction = (style: string, intensity: number): string => {
-    if (style === StyleOption.NONE || !STYLE_PROMPTS[style]) return "";
-    
-    // Ignore small values close to center to prevent noise
-    if (Math.abs(intensity) < 0.15) return "";
-
-    const keywords = STYLE_PROMPTS[style];
-
-    if (intensity > 0) {
-        // Positive Influence
-        if (intensity > 0.6) {
-            return `Strongly apply style: ${style}. key visuals: ${keywords}. (Weight: High)`;
-        } else {
-             return `Blend with style: ${style}. key visuals: ${keywords}. (Weight: Medium)`;
-        }
-    } else {
-        // Negative Influence (Avoidance)
-        return `Strictly avoid ${style} style. Ensure image does NOT contain: ${keywords}.`;
-    }
-  };
-
-  const instructionA = getStyleInstruction(styleA, matrixX);
-  const instructionB = getStyleInstruction(styleB, matrixY);
-
-  if (instructionA) enrichedPrompt += ` ${instructionA}`;
-  if (instructionB) enrichedPrompt += ` ${instructionB}`;
-
-  // Negative Prompts
-  if (negativePrompts.length > 0) {
-    enrichedPrompt += ` Negative constraints (avoid): ${negativePrompts.join(", ")}.`;
+      atmosphere.push(`Color Palette: ${COLOR_PALETTE_PROMPTS[colorPalette]}`);
   }
   
-  // Quality Boosters
-  enrichedPrompt += " Image requirements: High fidelity, detailed texture, accurate lighting, aesthetically pleasing composition.";
+  if (atmosphere.length > 0) {
+      sections.push(`[ATMOSPHERE & TECHNICAL SPECS]\n${atmosphere.join(' | ')}`);
+  }
 
-  return enrichedPrompt;
+  // 4. NEGATIVE CONSTRAINTS
+  const allNegatives = [...negativePrompts];
+  if (allNegatives.length > 0) {
+      sections.push(`[GLOBAL NEGATIVE PROMPTS]\n${allNegatives.join(', ')}`);
+  }
+
+  // 5. GLOBAL QUALITY SEAL
+  sections.push(`[QUALITY STANDARDS]\nHigh fidelity, detailed textures, professional composition, coherent lighting, masterpiece.`);
+
+  return sections.join('\n\n');
 };
 
 interface GenerationResult {
