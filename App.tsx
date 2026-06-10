@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
-import { generateImages } from './services/geminiService';
+import { TokenFuelGauge } from './components/TokenFuelGauge';
+import { generateImages, embedPrompt } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
 import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle, Sparkles } from 'lucide-react';
 
@@ -19,6 +20,7 @@ const DEFAULT_PARAMS: GenerationParams = {
   uploadedImage: undefined,
   model: ModelOption.FLASH,
   colorPalette: ColorPalette.NONE,
+  colorCount: 0,
   aspectRatio: AspectRatio.SQUARE,
   lighting: Lighting.NONE,
   depthOfField: DepthOfField.NONE
@@ -36,29 +38,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    
-    // Check for API Key presence via Vite env vars
-    const checkKey = async () => {
-       // Cast to any to avoid TS errors regarding missing env property on import.meta
-       const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-       const viteKey = (import.meta as any).env.VITE_API_KEY;
-       
-       if (geminiKey || viteKey) {
-           setApiKeyReady(true);
-           return;
-       }
-
-       // Otherwise, check if we can select one via AI Studio wrapper
-       if (window.aistudio) {
-           const hasSelected = await window.aistudio.hasSelectedApiKey();
-           setApiKeyReady(hasSelected);
-       } else {
-           // If not in a wrapper and no env var, we still let the app load.
-           // The generation service will throw a descriptive error if the key is missing at runtime.
-           setApiKeyReady(true);
-       }
-    };
-    checkKey();
+    setApiKeyReady(true); // Server handles the key now
   }, []);
 
   const handleSelectApiKey = async () => {
@@ -98,15 +78,20 @@ const App: React.FC = () => {
           setParams(generationParams);
       }
 
-      // Re-verify key availability just before generation if in wrapper
-      if (window.aistudio) {
-          // Force a fresh check or re-selection if needed could go here.
-      }
-
       const results = await generateImages(generationParams);
       
       if (results.length === 0) {
         throw new Error("No images generated. Please try again.");
+      }
+
+      // Generate embedding for the prompt to enable semantic search
+      let embedding: number[] | undefined;
+      try {
+          // We embed the user's prompt (or the full constructed prompt if preferred)
+          // Using the user's base prompt is usually better for semantic search intent
+          embedding = await embedPrompt(generationParams.prompt || "Image Edit");
+      } catch (e) {
+          console.error("Failed to generate embedding", e);
       }
 
       const newImages: GeneratedImage[] = results.map(res => ({
@@ -115,7 +100,8 @@ const App: React.FC = () => {
         prompt: generationParams.prompt || "Image Edit",
         timestamp: Date.now(),
         params: generationParams,
-        usedPoint: res.point
+        usedPoint: res.point,
+        embedding
       }));
 
       setHistory(prev => [...newImages, ...prev]);
@@ -297,44 +283,51 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="relative flex items-center gap-2 bg-zinc-900/90 p-2 rounded-xl border border-zinc-700 shadow-2xl focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all backdrop-blur-md">
+                    <div className="relative flex flex-col gap-2 bg-zinc-900/90 p-2 rounded-xl border border-zinc-700 shadow-2xl focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all backdrop-blur-md">
                         
-                        <label className="p-3 text-zinc-400 hover:text-white cursor-pointer hover:bg-zinc-800 rounded-lg transition-colors min-h-[44px] flex items-center justify-center" title="Upload Image">
-                            <Upload className="w-5 h-5" />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                        </label>
+                        <div className="flex items-start gap-2">
+                             <label className="p-3 text-zinc-400 hover:text-white cursor-pointer hover:bg-zinc-800 rounded-lg transition-colors min-h-[44px] flex items-center justify-center" title="Upload Image">
+                                <Upload className="w-5 h-5" />
+                                <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                            </label>
 
-                        <textarea
-                            value={params.prompt}
-                            onChange={(e) => setParams(prev => ({ ...prev, prompt: e.target.value }))}
-                            placeholder={params.uploadedImage ? "Describe edit..." : "Describe image..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 text-zinc-100 placeholder-zinc-500 resize-none h-12 py-3 leading-relaxed text-base"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleGenerate();
-                                }
-                            }}
-                        />
+                            <textarea
+                                value={params.prompt}
+                                onChange={(e) => setParams(prev => ({ ...prev, prompt: e.target.value }))}
+                                placeholder={params.uploadedImage ? "Describe edit..." : "Describe image..."}
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-zinc-100 placeholder-zinc-500 resize-none h-14 md:h-12 py-3 leading-relaxed text-base"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleGenerate();
+                                    }
+                                }}
+                            />
 
-                        <button
-                            onClick={() => handleGenerate()}
-                            disabled={isGenerating}
-                            className={`p-3 rounded-lg flex items-center gap-2 font-medium transition-all min-h-[44px] ${
-                                isGenerating 
-                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
-                            }`}
-                        >
-                            {isGenerating ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                <>
-                                    <span className="hidden sm:inline">Generate</span>
-                                    <Wand2 className="w-4 h-4" />
-                                </>
-                            )}
-                        </button>
+                            <button
+                                onClick={() => handleGenerate()}
+                                disabled={isGenerating}
+                                className={`p-3 rounded-lg flex items-center gap-2 font-medium transition-all min-h-[44px] ${
+                                    isGenerating 
+                                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
+                                }`}
+                            >
+                                {isGenerating ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <>
+                                        <span className="hidden sm:inline">Generate</span>
+                                        <Wand2 className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        
+                        {/* Token Gauge & Footer */}
+                        <div className="flex items-center justify-between px-3 pb-1">
+                             <TokenFuelGauge params={params} />
+                        </div>
                     </div>
 
                     {error && (

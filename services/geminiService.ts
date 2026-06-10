@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { GenerationParams, StyleOption, Point, ColorPalette, Lighting, DepthOfField, ModelOption } from "../types";
 
 // Helper to clean base64 string for API usage
@@ -11,7 +10,7 @@ const getMimeType = (dataUrl: string): string => {
   return match ? match[1] : 'image/png';
 }
 
-const COLOR_PALETTE_PROMPTS: Record<string, string> = {
+export const COLOR_PALETTE_PROMPTS: Record<string, string> = {
   [ColorPalette.VIBRANT]: "vibrant colors, high saturation, intense vivid tones, colorful",
   [ColorPalette.PASTEL]: "pastel color palette, soft washed-out colors, desaturated, gentle tones, soothing",
   [ColorPalette.MONOCHROME]: "black and white, monochromatic, grayscale, high contrast, noir aesthetic",
@@ -23,7 +22,7 @@ const COLOR_PALETTE_PROMPTS: Record<string, string> = {
   [ColorPalette.NONE]: ""
 };
 
-const LIGHTING_PROMPTS: Record<string, string> = {
+export const LIGHTING_PROMPTS: Record<string, string> = {
   [Lighting.GOLDEN_HOUR]: "golden hour lighting, warm sunlight, long shadows, soft sun flare, magical atmosphere",
   [Lighting.CINEMATIC]: "cinematic lighting, dramatic atmosphere, professional color grading, rim lights, volumetric lighting",
   [Lighting.DRAMATIC]: "high contrast lighting, chiaroscuro, deep shadows, intense highlights, dramatic mood",
@@ -35,13 +34,13 @@ const LIGHTING_PROMPTS: Record<string, string> = {
   [Lighting.NONE]: ""
 };
 
-const DEPTH_PROMPTS: Record<string, string> = {
+export const DEPTH_PROMPTS: Record<string, string> = {
   [DepthOfField.SHALLOW]: "shallow depth of field, strong bokeh, blurred background, sharp focus on subject, macro photography feel, f/1.8 aperture",
   [DepthOfField.DEEP]: "deep depth of field, everything in focus, sharp background, f/16 aperture, hyper-clear landscape",
   [DepthOfField.NONE]: ""
 };
 
-const STYLE_PROMPTS: Record<string, string> = {
+export const STYLE_PROMPTS: Record<string, string> = {
   [StyleOption.CYBERPUNK]: "cyberpunk aesthetic, neon-drenched night city, high-tech low-life, cybernetics, chromatic aberration, rain-slicked streets, futuristic dystopia, bioluminescent accents, synthwave palette",
   [StyleOption.WATERCOLOR]: "traditional watercolor painting, wet-on-wet technique, soft bleeding edges, translucent layers, textured paper grain, artistic splatters, dreamy pastel colors, fluid strokes",
   [StyleOption.REALISTIC]: "photorealistic 8k, unreal engine 5 render, cinematic lighting, ray tracing, incredibly detailed, sharp focus, macro photography texture, depth of field, raw photo realism",
@@ -89,8 +88,8 @@ const STYLE_PROMPTS: Record<string, string> = {
   [StyleOption.TOULOUSE]: "henri de toulouse-lautrec style, moulin rouge poster, lithograph texture, bold silhouette, expressive outlines, flat colors, belle epoque atmosphere, cabaret art"
 };
 
-const constructEnrichedPrompt = (params: GenerationParams, point: Point): string => {
-  const { prompt, styleA, styleB, negativePrompts, colorPalette, lighting, depthOfField } = params;
+export const constructEnrichedPrompt = (params: GenerationParams, point: Point): string => {
+  const { prompt, styleA, styleB, negativePrompts, colorPalette, lighting, depthOfField, colorCount } = params;
   const { x: matrixX, y: matrixY } = point;
   
   // Structured Prompt Construction
@@ -150,6 +149,10 @@ ${negativeStyleDirectives.join('\n')}`);
   if (colorPalette && COLOR_PALETTE_PROMPTS[colorPalette]) {
       atmosphere.push(`Color Palette: ${COLOR_PALETTE_PROMPTS[colorPalette]}`);
   }
+
+  if (colorCount > 0) {
+      atmosphere.push(`Color Limitation: Strictly use exactly ${colorCount} distinct colors (quantized palette)`);
+  }
   
   if (atmosphere.length > 0) {
       sections.push(`[ATMOSPHERE & TECHNICAL SPECS]\n${atmosphere.join(' | ')}`);
@@ -172,81 +175,112 @@ interface GenerationResult {
     point: Point;
 }
 
-export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
-  // Use VITE_GEMINI_API_KEY from import.meta.env
-  // Fallback to VITE_API_KEY if needed.
-  // Cast import.meta to any to avoid TS errors if types are not configured for Vite
-  const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.VITE_API_KEY;
+export const embedPrompt = async (text: string): Promise<number[]> => {
+  try {
+    const response = await fetch("/api/embed-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
 
-  if (!apiKey) {
-      throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in your Vercel Project Settings.");
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to embed prompt.");
+    }
+
+    const result = await response.json();
+    
+    // Check structure of result.embeddings
+    if (result.embeddings && result.embeddings.length > 0) {
+      const emb = result.embeddings[0];
+      if ((emb as any).values) {
+        return (emb as any).values;
+      }
+      return emb as unknown as number[];
+    }
+    return [];
+  } catch (err) {
+    console.error("Failed to embed prompt:", err);
+    return [];
   }
-  
-  const ai = new GoogleGenAI({ apiKey });
-  
-  const tasks: { point: Point }[] = [];
+};
+
+export const generateImages = async (params: GenerationParams): Promise<GenerationResult[]> => {
+  const tasks: { point: Point, index: number }[] = [];
 
   if (params.matrixPoints.length > 1) {
-    params.matrixPoints.forEach((point) => {
-        tasks.push({ point });
+    params.matrixPoints.forEach((point, index) => {
+        tasks.push({ point, index });
     });
   } else {
     const point = params.matrixPoints[0] || { x: 0, y: 0 };
     for (let i = 0; i < params.imageCount; i++) {
-        tasks.push({ point });
+        tasks.push({ point, index: i });
     }
   }
 
   const promises = tasks.map(async (task) => {
-    const finalPrompt = constructEnrichedPrompt(params, task.point);
+    let finalPrompt = constructEnrichedPrompt(params, task.point);
+    
+    // Ensure uniqueness in the batch by appending a unique variation string
+    const seedOffset = params.useCustomSeed ? params.seed + task.index : Math.floor(Math.random() * 100000000);
+    finalPrompt += `\n\n[Latent Variation Seed: ${seedOffset}]`;
+
     const config: any = { 
         imageConfig: {
             aspectRatio: params.aspectRatio
         }
     };
     
-    // Pass seed if custom seed is enabled
+    // Pass seed if custom seed is enabled, offset by index for batch uniqueness
     if (params.useCustomSeed) {
-        config.seed = params.seed;
+        config.seed = params.seed + task.index;
     }
     
     if (params.model === ModelOption.PRO) {
         config.imageConfig.imageSize = "1K";
     }
 
-    try {
-      const parts: any[] = [{ text: finalPrompt }];
+    const maxRetries = 2;
+    let lastError: any = null;
 
-      if (params.uploadedImage) {
-        parts.unshift({
-          inlineData: {
-            data: extractBase64Data(params.uploadedImage),
-            mimeType: getMimeType(params.uploadedImage),
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch("/api/generate-images", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ params, finalPrompt, config }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to generate image.");
           }
-        });
-      }
 
-      const response = await ai.models.generateContent({
-        model: params.model,
-        contents: { parts },
-        config
-      });
+          const data = await response.json();
 
-      if (response?.candidates?.[0]?.content?.parts) {
-         for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-               return {
-                 url: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`,
-                 point: task.point
-               };
-            }
-         }
-      }
-      throw new Error("Model returned no image data.");
-    } catch (error: any) {
-      // Propagate error message to UI
-      throw new Error(error.message || "Failed to generate image.");
+          if (data?.candidates?.[0]?.content?.parts) {
+             for (const part of data.candidates[0].content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                   return {
+                     url: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`,
+                     point: task.point
+                   };
+                }
+             }
+          }
+          throw new Error("Model returned no image data.");
+        } catch (error: any) {
+          lastError = error;
+          // If it's the last attempt, break and throw
+          if (attempt === maxRetries) break;
+          // Wait a short delay before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
     }
+    
+    // Propagate error message to UI
+    throw new Error(lastError?.message || "Failed to generate image.");
   });
 
   // Use allSettled to allow partial success in a batch

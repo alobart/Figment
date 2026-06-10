@@ -11,11 +11,12 @@ export interface GeneratedImage {
   timestamp: number;
   params: GenerationParams;
   usedPoint: Point; // The specific point used for this image
+  embedding?: number[]; // Semantic embedding of the prompt
 }
 
 export enum ModelOption {
   FLASH = "gemini-2.5-flash-image",
-  PRO = "gemini-3-pro-image-preview"
+  PRO = "gemini-3.1-flash-image-preview"
 }
 
 export enum ColorPalette {
@@ -69,6 +70,7 @@ export interface GenerationParams {
   uploadedImage?: string; 
   model: ModelOption; 
   colorPalette: ColorPalette;
+  colorCount: number; // 0 = Unlimited
   aspectRatio: AspectRatio;
   lighting: Lighting;
   depthOfField: DepthOfField;
@@ -130,3 +132,12 @@ export const NEGATIVE_PROMPTS_OPTIONS = [
   "Oversaturated",
   "Visual Noise/Clutter"
 ];
+
+declare global {
+  interface Window {
+    aistudio?: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}

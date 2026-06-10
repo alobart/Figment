@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GenerationParams, StyleOption, NEGATIVE_PROMPTS_OPTIONS, Point, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from '../types';
-import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, MoreHorizontal, MoreVertical, Dices } from 'lucide-react';
+import { Settings2, MinusCircle, Sliders, LayoutGrid, Square, Diamond, MousePointer2, Move, Palette, Cpu, X, BoxSelect, Sun, Aperture, MoreHorizontal, MoreVertical, Dices, Droplets } from 'lucide-react';
 import { MatrixPlotter } from './MatrixPlotter';
 import { SeedDial } from './SeedDial';
 
@@ -13,6 +13,8 @@ interface SidebarProps {
 }
 
 type PatternMode = 'free' | 'vertical' | 'horizontal';
+
+const COLOR_COUNTS = [0, 2, 3, 4, 5, 8, 16, 32, 64, 128, 256];
 
 export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGenerating, isOpen, onClose }) => {
   const [activePattern, setActivePattern] = useState<PatternMode>('free');
@@ -166,45 +168,65 @@ export const Sidebar: React.FC<SidebarProps> = ({ params, setParams, isGeneratin
                 disabled={isGenerating}
             >
                 <option value={ModelOption.FLASH}>Gemini 2.5 Flash (Fast)</option>
-                <option value={ModelOption.PRO}>Gemini 3 Pro (High Quality)</option>
+                <option value={ModelOption.PRO}>Gemini 3.1 Flash (High Quality)</option>
             </select>
         </div>
 
         {/* Dimension & Light Group */}
-        <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-                    <BoxSelect className="w-4 h-4 text-orange-400" />
-                    Ratio
+        <div className="space-y-3">
+             <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                        <BoxSelect className="w-4 h-4 text-orange-400" />
+                        Ratio
+                    </div>
+                    <select
+                        value={params.aspectRatio}
+                        onChange={(e) => setParams(prev => ({ ...prev, aspectRatio: e.target.value as AspectRatio }))}
+                        className="w-full bg-zinc-800 text-sm text-zinc-200 p-3 rounded-lg border border-zinc-700 focus:border-indigo-500 outline-none"
+                        disabled={isGenerating}
+                    >
+                        <option value={AspectRatio.SQUARE}>1:1 Square</option>
+                        <option value={AspectRatio.LANDSCAPE}>16:9 Landscape</option>
+                        <option value={AspectRatio.PORTRAIT}>9:16 Portrait</option>
+                        <option value={AspectRatio.CLASSIC}>4:3 Classic</option>
+                        <option value={AspectRatio.WIDE}>3:4 Tall</option>
+                    </select>
                 </div>
-                <select
-                    value={params.aspectRatio}
-                    onChange={(e) => setParams(prev => ({ ...prev, aspectRatio: e.target.value as AspectRatio }))}
-                    className="w-full bg-zinc-800 text-sm text-zinc-200 p-3 rounded-lg border border-zinc-700 focus:border-indigo-500 outline-none"
-                    disabled={isGenerating}
-                >
-                    <option value={AspectRatio.SQUARE}>1:1 Square</option>
-                    <option value={AspectRatio.LANDSCAPE}>16:9 Landscape</option>
-                    <option value={AspectRatio.PORTRAIT}>9:16 Portrait</option>
-                    <option value={AspectRatio.CLASSIC}>4:3 Classic</option>
-                    <option value={AspectRatio.WIDE}>3:4 Tall</option>
-                </select>
-            </div>
 
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                        <Palette className="w-4 h-4 text-pink-400" />
+                        Palette
+                    </div>
+                    <select
+                        value={params.colorPalette}
+                        onChange={(e) => setParams(prev => ({ ...prev, colorPalette: e.target.value as ColorPalette }))}
+                        className="w-full bg-zinc-800 text-sm text-zinc-200 p-3 rounded-lg border border-zinc-700 focus:border-indigo-500 outline-none"
+                        disabled={isGenerating}
+                    >
+                        <option value={ColorPalette.NONE}>Default</option>
+                        {Object.values(ColorPalette).filter(v => v !== ColorPalette.NONE).map(palette => (
+                            <option key={palette} value={palette}>{palette}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            
             <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-                    <Palette className="w-4 h-4 text-pink-400" />
-                    Palette
+                 <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                    <Droplets className="w-4 h-4 text-cyan-400" />
+                    Color Count Limit
                 </div>
                 <select
-                    value={params.colorPalette}
-                    onChange={(e) => setParams(prev => ({ ...prev, colorPalette: e.target.value as ColorPalette }))}
+                    value={params.colorCount}
+                    onChange={(e) => setParams(prev => ({ ...prev, colorCount: parseInt(e.target.value) }))}
                     className="w-full bg-zinc-800 text-sm text-zinc-200 p-3 rounded-lg border border-zinc-700 focus:border-indigo-500 outline-none"
                     disabled={isGenerating}
                 >
-                    <option value={ColorPalette.NONE}>Default</option>
-                    {Object.values(ColorPalette).filter(v => v !== ColorPalette.NONE).map(palette => (
-                        <option key={palette} value={palette}>{palette}</option>
+                    <option value={0}>Unlimited</option>
+                    {COLOR_COUNTS.filter(c => c > 0).map(c => (
+                        <option key={c} value={c}>{c} Colors {c <= 4 ? '(Strict)' : ''}</option>
                     ))}
                 </select>
             </div>
