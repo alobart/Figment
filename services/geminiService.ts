@@ -184,7 +184,13 @@ export const embedPrompt = async (text: string): Promise<number[]> => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const textResult = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(textResult);
+      } catch (e) {
+        throw new Error(`Server Error (${response.status}): ${textResult.substring(0, 100)}`);
+      }
       throw new Error(errorData.error || "Failed to embed prompt.");
     }
 
@@ -253,7 +259,13 @@ export const generateImages = async (params: GenerationParams): Promise<Generati
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
+            const textResult = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(textResult);
+            } catch (e) {
+              throw new Error(`Server Error (${response.status}): ${textResult.substring(0, 100)}`);
+            }
             throw new Error(errorData.error || "Failed to generate image.");
           }
 

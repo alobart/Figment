@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { ImageViewer } from './components/ImageViewer';
 import { TokenFuelGauge } from './components/TokenFuelGauge';
+import { MobileView } from './components/MobileView';
 import { generateImages, embedPrompt } from './services/geminiService';
 import { GeneratedImage, GenerationParams, StyleOption, ModelOption, ColorPalette, AspectRatio, Lighting, DepthOfField } from './types';
 import { Wand2, Loader2, Upload, X, Image as ImageIcon, Menu, Key, AlertTriangle, Sparkles } from 'lucide-react';
@@ -35,10 +36,18 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     setApiKeyReady(true); // Server handles the key now
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const handleSelectApiKey = async () => {
@@ -185,6 +194,28 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </div>
+      );
+  }
+
+  if (isMobile) {
+      return (
+          <MobileView 
+              params={params}
+              setParams={setParams}
+              history={history}
+              setHistory={setHistory}
+              currentBatch={currentBatch}
+              setCurrentBatch={setCurrentBatch}
+              isGenerating={isGenerating}
+              error={error}
+              handleGenerate={handleGenerate}
+              handleIterate={handleIterate}
+              handleUseAsReference={handleUseAsReference}
+              handleFileUpload={handleFileUpload}
+              clearUpload={clearUpload}
+              apiKeyReady={apiKeyReady}
+              handleSelectApiKey={handleSelectApiKey}
+          />
       );
   }
 
@@ -352,11 +383,11 @@ const App: React.FC = () => {
                                 )}
                             </div>
                             
-                            {/* Vercel Specific Help Message */}
+                            {/* API Key Help Message */}
                             {error.includes("API Key") && !window.aistudio && (
                                 <div className="text-xs text-zinc-400 pl-6 border-l-2 border-zinc-700 mt-1">
                                     <span className="font-semibold text-red-400">Environment Variable Missing:</span><br/>
-                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">VITE_GEMINI_API_KEY</code> is set in your Vercel Project Settings and you have redeployed.
+                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">GEMINI_API_KEY</code> is set in your application's environment variables or secrets.
                                 </div>
                             )}
                         </div>
