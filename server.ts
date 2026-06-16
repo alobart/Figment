@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -13,10 +14,11 @@ async function startServer() {
   app.post("/api/generate-images", async (req, res) => {
     try {
       const { params, finalPrompt, config } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      apiKey = apiKey?.trim();
 
-      if (!apiKey) {
-        return res.status(401).json({ error: "API Key not found on server." });
+      if (!apiKey || apiKey === "undefined" || apiKey === "null" || apiKey === "your_api_key_here") {
+        return res.status(401).json({ error: "API Key not found or invalid on server. Please ensure GEMINI_API_KEY is correctly set in your environment variables." });
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -53,10 +55,11 @@ async function startServer() {
   app.post("/api/embed-prompt", async (req, res) => {
     try {
       const { text } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      apiKey = apiKey?.trim();
 
-      if (!apiKey) {
-        return res.status(401).json({ error: "API Key not found on server." });
+      if (!apiKey || apiKey === "undefined" || apiKey === "null" || apiKey === "your_api_key_here") {
+        return res.status(401).json({ error: "API Key not found or invalid on server. Please ensure GEMINI_API_KEY is correctly set in your environment variables." });
       }
 
       const ai = new GoogleGenAI({ apiKey });
