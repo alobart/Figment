@@ -384,10 +384,10 @@ const App: React.FC = () => {
                             </div>
                             
                             {/* API Key Help Message */}
-                            {error.includes("API Key") && !window.aistudio && (
+                            {error.toLowerCase().includes("api key") && !window.aistudio && (
                                 <div className="text-xs text-zinc-400 pl-6 border-l-2 border-zinc-700 mt-1">
-                                    <span className="font-semibold text-red-400">Environment Variable Missing:</span><br/>
-                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">GEMINI_API_KEY</code> is set in your application's environment variables or secrets.
+                                    <span className="font-semibold text-red-400">Environment Configuration Error:</span><br/>
+                                    Please ensure <code className="bg-black/30 px-1 rounded text-white">GEMINI_API_KEY</code> is correctly set in your application's environment variables or secrets.
                                 </div>
                             )}
                         </div>

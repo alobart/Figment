@@ -287,7 +287,7 @@ export const MobileView: React.FC<MobileViewProps> = ({
                     <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="font-medium">{error}</p>
-                      {error.includes("API Key") && !window.aistudio && (
+                      {error.toLowerCase().includes("api key") && !window.aistudio && (
                         <p className="opacity-70 mt-1">Please ensure GEMINI_API_KEY environment variable is configured in settings or secrets.</p>
                       )}
                     </div>
