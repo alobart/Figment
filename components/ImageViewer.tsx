@@ -82,8 +82,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
     // --- Single Image View ---
     if (isSingleView && activeImage) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-zinc-950/50 p-2 sm:p-4 md:p-6 overflow-hidden relative animate-in fade-in duration-200">
-                <div className="relative w-full max-w-5xl max-h-full flex flex-col shadow-2xl shadow-black/50 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 group/container">
+            <div className="flex-1 flex items-center justify-center bg-zinc-950/50 p-2 sm:p-4 md:p-6 overflow-hidden relative animate-in fade-in duration-200 min-h-0">
+                <div className="relative w-full max-w-5xl max-h-full flex flex-col shadow-2xl shadow-black/50 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 group/container min-h-0">
                     
                     {/* Navigation Buttons (Only if multiple images) */}
                     {images.length > 1 && (
@@ -147,12 +147,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
                     </div>
                     
                     {/* Image Container */}
-                    <div className="flex-1 overflow-hidden flex items-center justify-center bg-zinc-950/50 p-1 select-none">
+                    <div className="flex-1 overflow-hidden flex items-center justify-center bg-zinc-950/50 p-1 select-none min-h-0">
                         <img 
                             key={activeImage.id} 
                             src={activeImage.url} 
                             alt={activeImage.prompt} 
-                            className="max-w-full max-h-full object-contain shadow-lg animate-in fade-in duration-300"
+                            className="w-full h-full object-contain shadow-lg animate-in fade-in duration-300"
                         />
                     </div>
                     
