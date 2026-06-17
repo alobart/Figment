@@ -83,7 +83,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
     if (isSingleView && activeImage) {
         return (
             <div className="flex-1 flex items-center justify-center bg-zinc-950/50 p-2 sm:p-4 md:p-6 overflow-hidden relative animate-in fade-in duration-200 min-h-0">
-                <div className="relative w-full max-w-5xl max-h-full flex flex-col shadow-2xl shadow-black/50 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 group/container min-h-0">
+                <div className="relative w-full h-full max-w-5xl flex flex-col shadow-2xl shadow-black/50 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 group/container min-h-0">
                     
                     {/* Navigation Buttons (Only if multiple images) */}
                     {images.length > 1 && (
@@ -206,7 +206,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
                     {images.map((img, idx) => (
                         <div 
                             key={img.id} 
-                            className="group relative aspect-square bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-indigo-500/50 transition-all shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10"
+                            onClick={() => setFocusedIndex(idx)}
+                            className="group relative aspect-square bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-indigo-500/50 transition-all shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer"
                         >
                             <img src={img.url} alt={img.prompt} className="w-full h-full object-cover" />
                             
@@ -214,28 +215,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onUse
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-5">
                                 <div className="flex justify-end gap-2 mb-auto pt-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                                      <button 
-                                        onClick={() => setFocusedIndex(idx)}
+                                        onClick={(e) => { e.stopPropagation(); setFocusedIndex(idx); }}
                                         className="p-2.5 bg-black/60 hover:bg-indigo-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
                                         title="Maximize"
                                     >
                                         <Maximize2 className="w-5 h-5" />
                                     </button>
                                      <button 
-                                        onClick={() => handleReferenceClick(img)}
+                                        onClick={(e) => { e.stopPropagation(); handleReferenceClick(img); }}
                                         className="p-2.5 bg-black/60 hover:bg-blue-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
                                         title="Use as Reference"
                                     >
                                         <Layers className="w-5 h-5" />
                                     </button>
                                      <button 
-                                        onClick={() => onIterate(img)}
+                                        onClick={(e) => { e.stopPropagation(); onIterate(img); }}
                                         className="p-2.5 bg-black/60 hover:bg-amber-500 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
                                         title="Iterate Variations"
                                     >
                                         <Sparkles className="w-5 h-5" />
                                     </button>
                                      <button 
-                                        onClick={() => handleDownload(img)}
+                                        onClick={(e) => { e.stopPropagation(); handleDownload(img); }}
                                         className="p-2.5 bg-black/60 hover:bg-emerald-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
                                         title="Download"
                                     >
