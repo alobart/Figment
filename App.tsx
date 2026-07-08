@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -141,9 +142,8 @@ const App: React.FC = () => {
       setCurrentBatch([]);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const processFile = (file: File) => {
+    if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setParams(prev => ({ ...prev, uploadedImage: reader.result as string }));
@@ -151,6 +151,123 @@ const App: React.FC = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  const processUrl = async (url: string) => {
+    try {
+      const trimmed = url.trim();
+      if (trimmed.startsWith('data:image/')) {
+        setParams(prev => ({ ...prev, uploadedImage: trimmed }));
+        return;
+      }
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        return;
+      }
+      const response = await fetch("/api/fetch-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.dataUrl) {
+          setParams(prev => ({ ...prev, uploadedImage: result.dataUrl }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch image from URL:", err);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      let foundFile = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            processFile(file);
+            e.preventDefault();
+            foundFile = true;
+            break;
+          }
+        }
+      }
+
+      if (!foundFile) {
+        const text = e.clipboardData?.getData('text/plain');
+        if (text && (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:image/'))) {
+          e.preventDefault();
+          processUrl(text);
+        }
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
+        processFile(file);
+        return;
+      }
+
+      const uriList = e.dataTransfer?.getData('text/uri-list');
+      if (uriList) {
+        const url = uriList.split('\n')[0]?.trim();
+        if (url) {
+          processUrl(url);
+          return;
+        }
+      }
+
+      const text = e.dataTransfer?.getData('text/plain');
+      if (text && (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:image/'))) {
+        processUrl(text);
+        return;
+      }
+
+      const html = e.dataTransfer?.getData('text/html');
+      if (html) {
+        const match = html.match(/<img[^>]+src="([^">]+)"/i);
+        if (match && match[1]) {
+          processUrl(match[1]);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
 
   const clearUpload = () => {
       setParams(prev => ({ ...prev, uploadedImage: undefined }));
@@ -199,23 +316,34 @@ const App: React.FC = () => {
 
   if (isMobile) {
       return (
-          <MobileView 
-              params={params}
-              setParams={setParams}
-              history={history}
-              setHistory={setHistory}
-              currentBatch={currentBatch}
-              setCurrentBatch={setCurrentBatch}
-              isGenerating={isGenerating}
-              error={error}
-              handleGenerate={handleGenerate}
-              handleIterate={handleIterate}
-              handleUseAsReference={handleUseAsReference}
-              handleFileUpload={handleFileUpload}
-              clearUpload={clearUpload}
-              apiKeyReady={apiKeyReady}
-              handleSelectApiKey={handleSelectApiKey}
-          />
+          <>
+            {isDragging && (
+              <div className="fixed inset-0 z-[100] bg-indigo-500/10 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-indigo-500/50 m-4 rounded-3xl pointer-events-none">
+                <div className="bg-zinc-900/90 p-8 rounded-2xl flex flex-col items-center shadow-2xl">
+                  <Upload className="w-12 h-12 text-indigo-400 mb-4 animate-bounce" />
+                  <h3 className="text-2xl font-bold text-white mb-2">Drop image here</h3>
+                  <p className="text-zinc-400">Use this image as a reference</p>
+                </div>
+              </div>
+            )}
+            <MobileView 
+                params={params}
+                setParams={setParams}
+                history={history}
+                setHistory={setHistory}
+                currentBatch={currentBatch}
+                setCurrentBatch={setCurrentBatch}
+                isGenerating={isGenerating}
+                error={error}
+                handleGenerate={handleGenerate}
+                handleIterate={handleIterate}
+                handleUseAsReference={handleUseAsReference}
+                handleFileUpload={handleFileUpload}
+                clearUpload={clearUpload}
+                apiKeyReady={apiKeyReady}
+                handleSelectApiKey={handleSelectApiKey}
+            />
+          </>
       );
   }
 
@@ -242,6 +370,17 @@ const App: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
         
+        {/* Drag and Drop Overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-50 bg-indigo-500/10 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-indigo-500/50 m-4 rounded-3xl pointer-events-none">
+            <div className="bg-zinc-900/90 p-8 rounded-2xl flex flex-col items-center shadow-2xl">
+              <Upload className="w-12 h-12 text-indigo-400 mb-4 animate-bounce" />
+              <h3 className="text-2xl font-bold text-white mb-2">Drop image here</h3>
+              <p className="text-zinc-400">Use this image as a reference</p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="h-16 border-b border-zinc-800 flex items-center px-4 md:px-6 justify-between bg-zinc-900/50 backdrop-blur-sm shrink-0 z-10">
             <div className="flex items-center gap-3">

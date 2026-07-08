@@ -95,4 +95,24 @@ app.post("/api/embed-prompt", async (req, res) => {
   }
 });
 
+app.post("/api/fetch-image", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") || "image/png";
+    const base64 = Buffer.from(buffer).toString("base64");
+    res.json({ dataUrl: `data:${contentType};base64,${base64}` });
+  } catch (error: any) {
+    console.error("Fetch image error:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch image from URL." });
+  }
+});
+
 export default app;
